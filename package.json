@@ -1,6 +1,6 @@
 {
   "name": "zipping-image",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "main": "index.js",
   "bin": {
     "zipping": "./index.js"

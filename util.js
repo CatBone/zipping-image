@@ -13,9 +13,13 @@ function getFileSize(filePath) {
 function isCompressed(filePath) {
   return new Promise(resolve => {
     const rs = fs.createReadStream(filePath)
-    rs.on('data', function (data) {
+    let data = ''
+    rs.on('data', chunk => {
+      data += chunk
+    })
+    rs.on('end', function () {
       const compressed = data.toString().includes('_compress')
-      return resolve(compressed)
+      resolve(compressed)
     })
   })
 }
@@ -23,14 +27,18 @@ function isCompressed(filePath) {
 function writeBuffer(filePath) {
   return new Promise(resolve => {
     const rs = fs.createReadStream(filePath)
+    const data = []
+    rs.on('data', chunk => {
+      data.push(chunk)
+    })
 
-    rs.on('data', function (data) {
+    rs.on('end', function () {
       const buf = Buffer.from('_compress')
-      const newBuf = Buffer.concat([data, buf])
+      const newBuf = Buffer.concat([...data, buf])
       const ws = fs.createWriteStream(filePath)
       ws.write(newBuf)
       ws.end()
-      resolve()
+      ws.on('finish', resolve)
     })
   })
 }
@@ -93,10 +101,9 @@ function getResolveList(fileList) {
       // todo
       const compress = await isCompressed(filePath)
       if (!compress) {
-        console.log('tiny !!!!')
         const source = tinify.fromFile(filePath)
         await source.toFile(filePath)
-        writeBuffer(filePath)
+        await writeBuffer(filePath)
       }
       const now = getFileSize(filePath)
       return {
@@ -133,4 +140,5 @@ module.exports = {
     const imageList = await getImageList(pathList)
     return Promise.all(getResolveList(imageList))
   },
+  writeBuffer,
 }
